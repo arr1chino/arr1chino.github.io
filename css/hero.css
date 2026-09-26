@@ -64,7 +64,8 @@
    居中一律用 left/right:0 撑满整行 + text-align 居中，不能用 transform：
    那一行会被 hero.js 每帧写进去的 translateY 覆盖掉。
    顶上那行的位置是反推出来的：--about-top 是这组字在视口里的高度（51vh），
-   calc(10vh - var(--about-top)) 就是「视口 10vh 处」相对这组字的偏移。
+   calc(0vh - var(--about-top)) 就是「视口最上沿」相对这组字的偏移
+   （2026-09-26 r77：原来是 10vh，用户要求这行直接顶到浏览器最上面）。
    以后要挪 About Me 那一组，只改 --about-top 一处，顶上这行不会跟着跑偏。
    （--about-top 等于「沃雅妮莎激推！！」那一行的高度加上原来那 55vh 的余量，
    所以中间这组往上提了一格，About Me 的位置看着没动。）
@@ -74,7 +75,7 @@
 .hero-about, .hero-about-top { text-align: center; color: #0e1b24;
   text-shadow: 0 1px 0 rgba(255,255,255,.55), 0 8px 30px rgba(255,255,255,.45); }
 .hero-about-top { position: absolute; left: 0; right: 0;
-  top: calc(10vh - var(--about-top)); }
+  top: calc(0vh - var(--about-top)); }
 .hero-about-name { margin: 0 0 .18em; font-size: clamp(17px, 1.95vw, 26px); font-weight: 700;
   letter-spacing: .12em; opacity: .94; }
 .hero-about-kicker { margin: 0; font-family: 'Caveat', 'Segoe Script', 'Brush Script MT', cursive;
@@ -367,8 +368,11 @@
   .hero-scroll { height: 430vh; }
   .hero-panel-inner { max-width: 74vw; padding: 14px 16px; }
   .hero-panels > .hero-panel--about { --about-top: 54vh; }
-  /* 手机上顶栏更高，顶上那行往下让一点，别跟顶栏叠在一起 */
-  .hero-about-top { top: calc(14vh - var(--about-top)); }
+  /* r77：顶上那行跟电脑端一样贴在最上沿；手机上它会跟左上角的站名撞在
+     一个角上，所以下面把整条顶栏（站名 + 汉堡钮）整体往下让 18px，
+     变成「上面一行居中字 / 下面一行站名」，两行互不遮挡。 */
+  .hero-about-top { top: calc(0vh - var(--about-top)); }
+  html.hero-mode #nav { padding-top: 32px !important; }
   .hero-panel[data-index="1"] { left: 5vw; top: 16vh; }
   .hero-panel[data-index="2"] { right: 5vw; top: 14vh; }
   .hero-panel[data-index="3"] { left: 5vw; bottom: 14vh; }
@@ -731,10 +735,9 @@ html.hb-dark .hb-music-bar-fill::after { background: #16212c; border-color: #7fd
 html.hb-dark .hb-music-times { color: #8697a8; }
 html.hb-dark .hb-music-card .hb-card-hint a { color: #7fd2f5; }
 
-/* 分镜上那几张介绍小卡 */
-html.hb-dark .hero-panel-inner { background: rgba(14, 24, 34, .82); }
-html.hb-dark .hero-panel-inner h3 { color: #e8eef6; }
-html.hb-dark .hero-panel-inner p { color: #a9b7c6; }
+/* 分镜上那几张介绍小卡：r77 起不管白天黑夜都保持原来那张白卡
+   （之前夜里被改成深蓝，用户说看着像「黑色的一坨」，要回原色）。
+   卡里的字色沿用上面 .hero-panel-inner h3 / p 的浅色底配色，不再单独覆盖。 */
 /* 黑天那层海压得很深，艺术字得反过来用亮色，白晕改成深晕。 */
 html.hb-dark .hero-about, html.hb-dark .hero-about-top { color: #eaf7ff; text-shadow: 0 2px 22px rgba(3, 18, 30, .78); }
 /* 「沃雅妮莎激推！！」正好压在她那条白领子上，光靠大范围的晕会糊掉，
