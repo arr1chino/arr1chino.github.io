@@ -267,6 +267,17 @@
   display: flex; align-items: center; gap: 8px; }
 .hb-card-title::before { content: ''; width: 3px; height: 14px; border-radius: 2px;
   background: linear-gradient(180deg, #62c6e6, #2b7fb8); }
+/* 标题右侧的小徽标（现在只有「本月日程」那枚「测试中」在用）。
+   特意用琥珀色 + 虚线边：这排卡片里蓝色是「正常、可点」的意思，
+   换一套色一眼就能看出「这个还没定稿」。呼吸只用 opacity，
+   不用 transform —— 卡片本身 hover 时会往上抬，两个 transform 会打架。 */
+.hb-card-title .hb-beta { padding: 2px 7px 3px; font-size: 10px; font-weight: 600;
+  letter-spacing: .08em; line-height: 1.2; color: #8a5a00;
+  background: rgba(255, 196, 66, .22); border: 1px dashed rgba(191, 138, 21, .6);
+  border-radius: 999px; animation: hbBetaPulse 2.4s ease-in-out infinite; }
+@keyframes hbBetaPulse { 0%, 100% { opacity: .72; } 50% { opacity: 1; } }
+html.hb-dark .hb-card-title .hb-beta { color: #ffd88a; background: rgba(255, 196, 66, .15);
+  border-color: rgba(255, 205, 96, .52); }
 .hb-muted { font-size: 13px; color: #98a2b0; margin: 0; }
 .hb-center { text-align: center; padding: 30px 20px; }
 .hb-center .hb-card-title { justify-content: center; }
