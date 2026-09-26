@@ -191,7 +191,9 @@
 .hero-blog { display: grid; grid-template-columns: 300px minmax(0, 1fr) 300px; gap: 22px;
   max-width: 1800px; margin: 0 auto; padding: 0 24px; }
 .hero-blog-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-.hero-blog-col--main { min-height: 106vh; }
+/* 中列不再硬撑 106vh —— 那是文章卡被拉高的元凶。
+   现在三列谁高听谁的（左右两列的小模块说了算），白卡跟着收短。 */
+.hero-blog-col--main { min-height: 0; }
 /* 侧栏卡片一律从上往下排。
    之前用 space-between，是两列卡片数量不一样时会被拉开——
    现在左列只剩一张资料卡、右列一张一言一张歌单，更不能拉。 */
@@ -230,13 +232,22 @@
 .hb-list-title { font-size: 22px; font-weight: 600; color: #232a33; margin: 2px 0 16px;
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .hb-list-count { font-size: 12px; font-weight: 400; color: #98a2b0; }
-.hb-posts { flex: 1; display: flex; flex-direction: column; gap: 18px; }
-.hb-post { display: flex; background: #fff; border: 1px solid rgba(35, 42, 51, .06);
-  border-radius: 20px; overflow: hidden; flex: 1 1 0; min-height: 232px; }
-.hb-post-body { flex: 1 1 auto; min-width: 0; padding: 26px 26px 24px;
+/* 「最新文章」那一列：每张卡是横着的长条，高度只由内容撑开。
+   以前是 flex:1 + 中列 min-height:106vh，两张卡被拉成 433px 的方块，
+   整块白卡又高又空。现在高度交给内容（≈ 210px，正好是原来的一半）。 */
+.hb-posts { flex: 0 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.hb-post { position: relative; display: flex; background: #fff;
+  border: 1px solid rgba(35, 42, 51, .06); border-radius: 20px; overflow: hidden;
+  flex: 0 0 auto; min-height: 206px;
+  --hb-art-fade: 255, 255, 255;
+  transition: transform .55s cubic-bezier(.22,.61,.36,1),
+    box-shadow .55s cubic-bezier(.22,.61,.36,1),
+    border-color .55s cubic-bezier(.22,.61,.36,1); }
+.hb-post-body { flex: 1 1 auto; min-width: 0; padding: 30px 28px 28px;
   display: flex; flex-direction: column; justify-content: center; gap: 12px; }
 .hb-post-title { font-size: 21px; font-weight: 600; line-height: 1.35; margin: 0; }
-.hb-post-title a { text-decoration: none; color: inherit; }
+.hb-post-title a { text-decoration: none; color: inherit;
+  transition: color .4s cubic-bezier(.22,.61,.36,1); }
 .hb-post-meta { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: #98a2b0; }
 .hb-meta-item { display: inline-flex; align-items: center; gap: 6px; }
 .hb-post-excerpt { font-size: 14px; line-height: 1.75; color: #5a6473; margin: 0; }
@@ -244,12 +255,43 @@
 .hb-tag { font-size: 11px; padding: 3px 10px; border-radius: 999px;
   color: #2b7fb8; background: rgba(43, 127, 184, .10); }
 
+/* 整张卡都能点：铺一层透明链接盖住卡面（键盘 Tab 也停在这一层）。
+   标题那个链接只留给搜索引擎，从 Tab 顺序里摘掉了。 */
+.hb-post-hit { position: absolute; inset: 0; z-index: 3; border-radius: 20px;
+  text-decoration: none; }
+.hb-post-hit:focus-visible { outline: 2px solid #2b7fb8; outline-offset: -4px; }
+
+/* 悬停：整卡轻轻抬起 + 影子浮起来 + 标题变蓝 + 封面缓慢推近。 */
+@media (hover: hover) and (pointer: fine) {
+  .hb-post:hover { transform: translateY(-4px);
+    box-shadow: 0 20px 44px rgba(20, 72, 110, .16);
+    border-color: rgba(43, 127, 184, .30); }
+  .hb-post:hover .hb-post-title a { color: #2b7fb8; }
+  .hb-post:hover .hb-post-art-img { transform: scale(1.06); }
+}
+
 /* 渐变封面：没在文章里放图时自动顶上来，放了图就让位给真图。
-   五套冷色渐变轮着用（蓝 / 青 / 靛），贴角色的人鱼配色。 */
-.hb-post-art { flex: 0 0 42%; order: 2; position: relative; background-size: cover;
-  background-position: center; }
-.hb-post-art::after { content: ''; position: absolute; inset: 0;
+   五套冷色渐变轮着用（蓝 / 青 / 靛），贴角色的人鱼配色。
+   .hb-post-art 只是个裁切框，真正的画面在内层 .hb-post-art-img 上 ——
+   分开之后悬停才有得推（推内层，框不动，边缘不会被推出格）。 */
+.hb-post-art { flex: 0 0 42%; order: 2; position: relative; overflow: hidden; }
+.hb-post-art-img { position: absolute; inset: 0; background-size: cover;
+  background-position: center; transform: scale(1.001);
+  transition: transform .85s cubic-bezier(.22,.61,.36,1); }
+/* 左上角那点高光，让渐变不至于太平 */
+.hb-post-art::before { content: ''; position: absolute; inset: 0; z-index: 2;
   background: radial-gradient(120% 90% at 80% 15%, rgba(255, 255, 255, .30), transparent 60%); }
+/* 从右往左化开：封面左缘就是白卡的颜色，往右一路渐没，
+   照片像是从卡面里长出来的，不会在中间切一条竖线。
+   --hb-art-fade 是「卡片底色」，黑天由下面的深色规则覆盖。 */
+.hb-post-art::after { content: ''; position: absolute; inset: 0; z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(to right,
+    rgb(var(--hb-art-fade)) 0%,
+    rgba(var(--hb-art-fade), .86) 9%,
+    rgba(var(--hb-art-fade), .46) 20%,
+    rgba(var(--hb-art-fade), .14) 31%,
+    rgba(var(--hb-art-fade), 0) 44%); }
 .hb-art-0 { background-image: linear-gradient(135deg, #3f8fc4, #8ad9ea 46%, #2b6f9e); }
 .hb-art-1 { background-image: linear-gradient(135deg, #4a6fc4, #9ad4e8 50%, #2a4f9e); }
 .hb-art-2 { background-image: linear-gradient(135deg, #2f8fae, #6fd8cf 48%, #1f6b8a); }
@@ -390,6 +432,10 @@
   .hero-blog-col--side { flex-direction: column; }
   .hb-post { flex-direction: column; min-height: 0; }
   .hb-post-art { order: 0; flex: 0 0 150px; }
+  /* 手机上封面横在最上面，左右那套渐变化合就不成立了 ——
+     改成往下化进正文，接缝一样看不见。 */
+  .hb-post-art::after { background: linear-gradient(to bottom,
+    rgba(var(--hb-art-fade), 0) 58%, rgb(var(--hb-art-fade)) 100%); }
 }
 
 @media (max-width: 900px) {
@@ -737,7 +783,14 @@ html.hb-dark .hb-weather-foot { color: #8697a8; }
 html.hb-dark .hb-weather-top b { color: #e8eef6; }
 
 /* 文章卡 */
-html.hb-dark .hb-post { background: #16212c; border-color: rgba(255, 255, 255, .07); }
+html.hb-dark .hb-post { background: #16212c; border-color: rgba(255, 255, 255, .07);
+  --hb-art-fade: 22, 33, 44; }
+html.hb-dark .hb-post-hit:focus-visible { outline-color: #7fd2f5; }
+@media (hover: hover) and (pointer: fine) {
+  html.hb-dark .hb-post:hover { box-shadow: 0 20px 44px rgba(0, 0, 0, .5);
+    border-color: rgba(79, 195, 247, .34); }
+  html.hb-dark .hb-post:hover .hb-post-title a { color: #7fd2f5; }
+}
 html.hb-dark .hb-post-excerpt { color: #a9b7c6; }
 html.hb-dark .hb-post-meta { color: #8697a8; }
 html.hb-dark .hb-tag { background: rgba(79, 195, 247, .14); color: #7fd2f5; }

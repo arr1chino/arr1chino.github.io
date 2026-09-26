@@ -7,6 +7,7 @@ const canvas = document.querySelector('.hero-canvas');
 const scroller = document.querySelector('.hero-scroll');
 const panels = Array.from(document.querySelectorAll('.hero-panel'));
 const hint = document.querySelector('.hero-hint');
+const fxBlur = document.querySelector('.hero-fx-blur');
 
 /* ---------------------------------------------------------------
    关键帧：整页只有镜头在动（fit/focus/side/fov/turn/背景色），
@@ -211,12 +212,14 @@ if (!reduced && typeof window.Lenis === 'function') {
 }
 
 /* 退场淡出：分镜走完（progress 到 1）之后，这屏像 greymac 一样「原地淡掉」——
-   位置焊死不动，只把整层 opacity 从 1 线性收到 0，正好收一屏高。
-   同一段滚动里白卡从下面升上来把它盖住，所以淡出到头的时候白卡也刚好到顶。
-   greymac 实测就是这条式子：opacity = 1 - 已滚动 / 一屏高。
+   位置焊死不动，只把整层 opacity 收掉。长度见下面的 FADE_SPAN。
    Lenis 开着的时候 scrollY 已经被抹顺了，这里就不必再叠阻尼，
    把追加速度提上去，等于只留 Lenis 那一层平滑（双阻尼会跟手差半拍）。 */
 const PROG_LERP = lenis ? 22 : 7;
+/* 退场淡出占几屏。0.5 = 分镜一走完就开始淡，滚过半屏正好淡干净。
+   这个数只有两个地方用：下面 frame() 里算淡出进度，以及「整屏淡完之后
+   把 3D 渲染停掉」的判定 —— 两处必须是同一个数，所以提到这儿来。 */
+const FADE_SPAN = 0.50;
 let lastStageOpacity = -1;
 /* 上一帧是不是黑夜模式。用来判断「这一帧刚切了主题」，见下面 frame() 里那段。 */
 let lastDarkState = document.documentElement.classList.contains('hb-dark');
@@ -731,7 +734,14 @@ function applyKey(px) {
      CSS 那边拿它们算两层各自的不透明度。
      值没怎么变就不写，免得每帧都触发一次样式重算。 */
   const fx = fxAt(px);
-  if (stage && Math.abs(fx - lastFx) > 0.002) { lastFx = fx; stage.style.setProperty('--fx', fx.toFixed(3)); }
+  if (Math.abs(fx - lastFx) > 0.002) {
+    lastFx = fx;
+    if (stage) stage.style.setProperty('--fx', fx.toFixed(3));
+    /* 虚化那层是全屏 backdrop-filter，属于最贵的合成之一。
+       六幕里只有两幕用到它，强度归零的时候直接把它从渲染树里摘掉，
+       不然滚动全程都在白糊一整屏 —— 这是「滑动发涩」的一大来源。 */
+    if (fxBlur) fxBlur.style.display = fx < 0.01 ? 'none' : '';
+  }
   const shade = shadeAt(a, b, t);
   if (stage && Math.abs(shade - lastShade) > 0.002) { lastShade = shade; stage.style.setProperty('--shade', shade.toFixed(3)); }
 
@@ -741,6 +751,9 @@ function applyKey(px) {
       : clamp(1 - (d - PANEL_SOLID) / (PANEL_SPAN - PANEL_SOLID), 0, 1);
     el.style.opacity = o.toFixed(3);
     el.style.transform = 'translateY(' + ((1 - o) * 18).toFixed(1) + 'px)';
+    /* 资料卡也是磨砂（backdrop-filter），看不见的那几张留着照样要算。
+       彻底收掉之后把整棵子树藏起来。 */
+    el.style.visibility = o < 0.005 ? 'hidden' : '';
   });
   if (hint) hint.style.opacity = String(clamp(1 - px * 8, 0, 0.85));
 }
@@ -930,6 +943,16 @@ function frame(now) {
   if (lenis) lenis.raf(now);
   if (ready) {
     const m = heroMetrics();
+    /* 这一屏已经整层淡完了（白卡把它从头到脚盖住，用户在看博客）。
+       淡出之后露出来的是 .hero-flow 那层 CSS 底色，canvas 本来就一点都看不见了，
+       可渲染循环还在每帧跑 WebGL + 多重采样 + 后处理 —— 等于一直空转。
+       判定通过就整段跳过：位置、相机、眨眼全都不用算，一帧只剩 Lenis 那一行。
+       往下读文章时滑动跟不跟手，差的就是这一块。往回滚一进来立刻恢复。 */
+    if (frozen === null && m.scrolled >= m.span + FADE_SPAN * window.innerHeight) {
+      if (lastStageOpacity !== 0) { lastStageOpacity = 0; stage.style.opacity = '0'; }
+      requestAnimationFrame(frame);
+      return;
+    }
     target = scrollProgress(m);
     progress += (target - progress) * Math.min(1, dt * PROG_LERP);
     mouseSmooth.x += (mouse.x - mouseSmooth.x) * Math.min(1, dt * 4);
@@ -937,10 +960,17 @@ function frame(now) {
     eyeSmooth.x += (mouse.x - eyeSmooth.x) * Math.min(1, dt * 12);
     eyeSmooth.y += (mouse.y - eyeSmooth.y) * Math.min(1, dt * 12);
 
-    /* 退场：分镜跑完之后，这屏原地淡掉。frozen 是截图/调试用的冻结态，
-       冻结时强制按「还在场」显示，不然一冻结就整屏透明、什么都看不到。 */
+    /* 退场：分镜跑完之后，这一屏原地淡掉，白卡同时从下面升上来。
+       淡出窗口故意比 greymac 靠前半个屏：它那一屏上只有几行小字，白卡的
+       硬边横着切过去看不出来；我们这屏是画面正中的脸部大特写，白卡顶边升到
+       画面七成高的地方就切到下巴了 —— 等那会儿才淡完，观感就是「人被一刀
+       切成两半，上一半还浮在水里」。所以淡出从分镜一结束（白卡整块还在屏幕
+       外面）就开始，走到白卡顶边刚过画面中线时正好归零，剩下半程白卡是压着
+       一片空海面上来的，接缝处干干净净。
+       frozen 是截图/调试用的冻结态，冻结时强制按「还在场」显示，
+       不然一冻结就整屏透明、什么都看不到。 */
     const fade = frozen !== null ? 1
-      : 1 - clamp((m.scrolled - m.span) / Math.max(1, window.innerHeight), 0, 1);
+      : 1 - sstep(m.span, m.span + FADE_SPAN * window.innerHeight, m.scrolled);
     if (Math.abs(fade - lastStageOpacity) > 0.001) {
       lastStageOpacity = fade;
       stage.style.opacity = String(fade);
