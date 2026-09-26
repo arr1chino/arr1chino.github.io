@@ -969,3 +969,12 @@ html.hb-dark .hb-cal-festchip { background: rgba(255, 143, 122, .14); color: #ff
 @media (max-width: 640px) {
   .hb-mini-cal-card { max-width: 420px; }
 }
+
+/* ============================================================
+   2026-09-26 r76 顶部菜单撤空之后的收尾
+   右上角那个「日历」入口删掉之后，导航和手机抽屉里各剩一个空的圆角容器
+   （手机抽屉里那块灰条看着像没加载完）。空着就直接藏掉，
+   以后往菜单里加回条目它会自己出来。
+   ============================================================ */
+#menus .menus_items:empty,
+#sidebar-menus .menus_items:empty { display: none; }
