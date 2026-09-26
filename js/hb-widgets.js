@@ -149,7 +149,8 @@
     if (!card || !nameEl) return;
 
     var hintEl = card.querySelector('.hb-card-hint');
-    var current = null;
+    var current = null; /* 卡片上正显示的那首 */
+    var pending = null; /* 已经交给播放器、还在等回话的那首 */
     var misses = 0; /* 连着几首放不出来 */
 
     function face(cls) {
@@ -172,14 +173,21 @@
       if (durEl) durEl.textContent = clock(dur);
     }
 
+    /* 挑一首跟「卡片上这首」「正在取的那首」都不一样的。 */
     function roll() {
       var next = pick(SONGS);
       var guard = 0;
-      while (SONGS.length > 1 && current && next.id === current.id && guard++ < 12) next = pick(SONGS);
+      while (SONGS.length > 1 && guard++ < 12) {
+        var sameAsShown = current && next.id === current.id;
+        var sameAsWait = pending && next.id === pending.id;
+        if (!sameAsShown && !sameAsWait) break;
+        next = pick(SONGS);
+      }
       return next;
     }
 
-    function paint(song, autoplay) {
+    /* 把一首歌真正画到卡片上（名字 / 封面 / 进度条归零）。 */
+    function show(song) {
       current = song;
       if (coverEl) coverEl.style.backgroundImage = 'linear-gradient(135deg,' + song.c1 + ',' + song.c2 + ')';
       if (artistEl) artistEl.textContent = song.artist;
@@ -192,21 +200,50 @@
       bar(0);
       times(0, NaN);
       if (hintEl) hintEl.textContent = MUSIC_HINT;
-      card.classList.remove('is-miss');
+      card.classList.remove('is-miss', 'is-loading');
+    }
 
-      if (!audio) return;
+    /* 把一首歌交给藏在卡里的播放器去取，但先不画到卡片上 ——
+       等播放器回话（loadedmetadata）确认这首歌真能放，再改名字和封面。
+       会员曲 / 下架曲网易云那边给不出音频，会走进 error 里悄悄再挑下一首；
+       因为名字一直没动过，看着就是「点一下 → 直接换成能放的那首」，
+       不会有「先闪一个新名字、紧接着又跳走」那种点一次跳两下的感觉。
+       等回话的这段时间先让名字淡一点，表示「在取了」。 */
+    function feed(song, autoplay) {
+      pending = song;
+      if (!audio) { pending = null; show(song); return; }
+      card.classList.add('is-loading');
       audio.src = MUSIC_STREAM + encodeURIComponent(song.id) + '.mp3';
       audio.load();
       if (autoplay) playIt();
     }
 
-    paint(roll(), false);
+    /* 换一首：点卡片、点骰子、一首放完，都走这里。 */
+    function swap(autoplay) { feed(roll(), autoplay); }
+
+    if (!audio) {
+      show(roll());
+    } else {
+      /* 开场先把名字亮出来，卡片不会一直挂着「正在挑歌…」 */
+      var opener = roll();
+      show(opener);
+      feed(opener, false);
+    }
     if (!audio) return;
 
     audio.addEventListener('play', function () { face('fa-pause'); card.classList.add('is-playing'); });
     audio.addEventListener('pause', function () { face('fa-play'); card.classList.remove('is-playing'); });
     audio.addEventListener('loadedmetadata', function () {
       misses = 0;
+      /* 取到了：这时候才把名字换过来 */
+      if (pending && pending !== current) {
+        var ok = pending;
+        pending = null;
+        show(ok);
+      } else {
+        pending = null;
+        card.classList.remove('is-loading');
+      }
       times(audio.currentTime, audio.duration);
     });
     audio.addEventListener('timeupdate', function () {
@@ -214,25 +251,29 @@
       bar(audio.duration ? audio.currentTime / audio.duration : 0);
     });
     /* 一首放完接着随机下一首，不用回来点 */
-    audio.addEventListener('ended', function () { paint(roll(), true); });
+    audio.addEventListener('ended', function () { swap(true); });
     audio.addEventListener('error', function () {
-      if (!current || misses >= 3) {
+      var failed = pending || current;
+      /* 连着几首都取不到就认输，在卡片底下留一个去网易云的出口 */
+      if (misses >= 3) {
+        pending = null;
+        if (failed && failed !== current) show(failed);
         if (hintEl) {
           card.classList.add('is-miss');
           hintEl.innerHTML = '在线播放暂时取不到，<a href="https://music.163.com/#/song?id=' +
-            encodeURIComponent(current ? current.id : '') + '" target="_blank" rel="noopener">去网易云听</a>';
+            encodeURIComponent(failed ? failed.id : '') + '" target="_blank" rel="noopener">去网易云听</a>';
         }
         return;
       }
       misses++;
       if (hintEl) hintEl.textContent = '这首放不出来，换下一首…';
-      paint(roll(), !audio.paused);
+      feed(roll(), !audio.paused);
     });
 
     /* 点卡片任意地方 = 换一首；本来就放着的话接着放 */
     card.addEventListener('click', function (e) {
       if (e.target && e.target.closest && e.target.closest('.hb-music-btns, .hb-music-bar')) return;
-      paint(roll(), !audio.paused);
+      swap(!audio.paused);
     });
 
     if (toggleEl) {
@@ -246,7 +287,7 @@
     if (stepEl) {
       stepEl.addEventListener('click', function (e) {
         e.stopPropagation();
-        paint(roll(), !audio.paused);
+        swap(!audio.paused);
       });
     }
 

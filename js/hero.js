@@ -1140,8 +1140,8 @@ boot();
 
 /* -----------------------------------------------------------------
    「About Me」那一屏的打字机。
-   一个字一个字打出来 → 停一下 → 再一个字一个字删掉 → 从清单里随机挑
-   下一个接着打（不会连着两轮是同一个词，不然看着像卡住了）。
+   一个字一个字打出来 → 停一下 → 再一个字一个字删掉 → 接着打清单里的
+   下一个词（按顺序来，最后一个打完之后回到第一个）。
    想换词只改下面这份 ABOUT_WORDS 清单，格式是「一个词一行」。
    ----------------------------------------------------------------- */
 const ABOUT_WORDS = [
@@ -1161,13 +1161,12 @@ const ABOUT_WORDS = [
 
   const HOLD = 1250;  /* 整个词打完之后停多久 */
   const GAP = 420;    /* 删干净之后空多久再打下一个 */
-  let word = '', pos = 0, last = -1, phase = 'gap';
+  let word = '', pos = 0, idx = -1, phase = 'gap';
 
+  /* 按清单顺序一个一个来：打完一个就轮下一个，最后一个后面绕回第一个。 */
   function nextWord() {
-    let i = last;
-    while (ABOUT_WORDS.length > 1 && i === last) i = Math.floor(Math.random() * ABOUT_WORDS.length);
-    last = i;
-    return ABOUT_WORDS[i];
+    idx = (idx + 1) % ABOUT_WORDS.length;
+    return ABOUT_WORDS[idx];
   }
 
   function tick() {

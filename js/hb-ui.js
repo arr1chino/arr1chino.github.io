@@ -4,7 +4,7 @@
       内容卡片还是白的浮在上面 —— 这样整站看着是同一个人做的。
 
    黑白模式：记住上次的选择（存在浏览器自己的 localStorage 里），
-   刷新之后还是你上次选的那个。没选过就是白天。
+   刷新之后还是你上次选的那个。一次都没选过的访客默认进黑夜模式。
    真正的开关在 <html> 上的两个属性：data-theme 交给主题的配色用，
    hb-dark 是我自己那几块（首页的卡片、流光蓝）用。 */
 (function () {
@@ -18,7 +18,7 @@
       var v = localStorage.getItem(KEY);
       if (v === 'dark' || v === 'light') return v;
     } catch (e) { /* 隐私模式下读不到就算了 */ }
-    return 'light';
+    return 'dark';
   }
 
   function paintTheme(mode) {
