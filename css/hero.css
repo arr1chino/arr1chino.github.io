@@ -101,8 +101,14 @@
 
 .hero-panels { position: absolute; inset: 0; pointer-events: none; }
 .hero-panel { position: absolute; opacity: 0; will-change: transform, opacity; }
-.hero-panel-inner { background: rgba(255,255,255,.74); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,.65); border-radius: 16px; padding: 18px 20px 20px;
+/* 白卡的三档透明度（--hb-card-a 是主填充，--hb-card-edge 是那圈白边）。
+   一开始填充给到 .74，在白底页面上是够清爽的，但压在深蓝海面上就像贴了张
+   不透明的纸，看着很「刻意」。现在降到 .56，靠加厚模糊（10 → 14px）把字
+   的可读性补回来 —— 字清楚靠的是后面那层被糊掉的背景，不是靠白得发亮。 */
+.hero-panel-inner { --hb-card-a: .56; --hb-card-edge: .46;
+  background: rgba(255,255,255,var(--hb-card-a));
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,var(--hb-card-edge)); border-radius: 16px; padding: 18px 20px 20px;
   box-shadow: 0 12px 34px rgba(38,50,40,.14); max-width: 330px; }
 .hero-kicker { display: inline-block; margin-bottom: 10px; padding: 3px 11px 4px;
   font-size: 11px; letter-spacing: .12em; color: #14171a;
@@ -574,7 +580,7 @@ body.hero-mode { background-color: transparent !important; }
 .hero-deep .hero-hint { color: #eaf9ff; }
 .hero-deep .hero-vignette {
   background: radial-gradient(128% 98% at 50% 45%, rgba(0,0,0,0) 52%, rgba(28,104,140,.14) 100%); }
-.hero-deep .hero-panel-inner { background: rgba(255,255,255,.86); }
+.hero-deep .hero-panel-inner { --hb-card-a: .68; --hb-card-edge: .54; }
 
 /* 白卡升上来盖住导航之后，导航那一片底色是米白，浅色字等于消失。
    卡片顶边一进到导航这一带就把字翻回深色（hero.js 在盯着卡片的位置）。
