@@ -261,8 +261,34 @@
    现在左列只剩一张资料卡、右列一张一言一张歌单，更不能拉。 */
 .hero-blog-col--side { justify-content: flex-start; }
 
+/* 侧栏小模块（资料卡 / 友情链接 / 本月日程 / 天气 / 一言 / 歌单）。
+   它们大多点不动，但鼠标停上去也得有反应 —— 手感照抄 xuioo 那套：
+   轻轻抬起 2px、影子化开、边框隐掉换成 1px 内描边（内描边不占地方、
+   不会把里面的字挤动），底色再亮一档。曲线用他家的 cubic-bezier(.32,.72,0,1)。 */
 .hb-card { background: #fff; border: 1px solid rgba(35, 42, 51, .06); border-radius: 20px;
-  padding: 20px 20px 22px; }
+  padding: 20px 20px 22px;
+  outline: 1px solid transparent; outline-offset: -1px;
+  transition: transform .3s cubic-bezier(.32,.72,0,1),
+    box-shadow .3s cubic-bezier(.32,.72,0,1),
+    border-color .3s cubic-bezier(.32,.72,0,1),
+    outline-color .3s cubic-bezier(.32,.72,0,1),
+    background-color .3s cubic-bezier(.32,.72,0,1); }
+@media (hover: hover) and (pointer: fine) {
+  .hb-card:hover { transform: translateY(-2px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, .06);
+    border-color: transparent;
+    outline-color: rgba(35, 42, 51, .55);
+    background-color: #f8fbfe; }
+}
+/* 侧栏里真能按的三张（本月日程 / 今日一言 / 你在的地方）：手感一样，
+   只把描边换成蓝色，一眼区分「这张能按」和「这张只是摆着」。
+   键盘 Tab 停上去也给一圈看得见的蓝框（内描边本身是透明的，得单独补）。 */
+.hb-card.hb-mini-cal-card:focus-visible { outline: 2px solid #2b7fb8; outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) {
+  .hb-card.hb-mini-cal-card:hover,
+  .hb-card.hb-quote-card:hover,
+  .hb-card.hb-weather-card:hover { outline-color: rgba(43, 127, 184, .55); }
+}
 .hb-card-title { font-size: 15px; font-weight: 600; color: #232a33; margin: 0 0 14px;
   display: flex; align-items: center; gap: 8px; }
 .hb-card-title::before { content: ''; width: 3px; height: 14px; border-radius: 2px;
@@ -313,14 +339,25 @@ html.hb-dark .hb-card-title .hb-beta { color: #ffd88a; background: rgba(255, 196
   border: 1px solid rgba(35, 42, 51, .06); border-radius: 20px; overflow: hidden;
   flex: 0 0 auto; min-height: 206px;
   --hb-art-fade: 255, 255, 255;
-  transition: transform .55s cubic-bezier(.22,.61,.36,1),
-    box-shadow .55s cubic-bezier(.22,.61,.36,1),
-    border-color .55s cubic-bezier(.22,.61,.36,1); }
+  /* 悬停时那圈收紧的内描边 + 右下角那枚圆钮，白天用墨色、夜里翻成浅色 */
+  --hb-post-ink: #232a33; --hb-post-ink-bg: #fff;
+  outline: 1px solid transparent; outline-offset: -1px;
+  transition: transform .3s cubic-bezier(.32,.72,0,1),
+    box-shadow .3s cubic-bezier(.32,.72,0,1),
+    border-color .3s cubic-bezier(.32,.72,0,1),
+    outline-color .3s cubic-bezier(.32,.72,0,1); }
 .hb-post-body { flex: 1 1 auto; min-width: 0; padding: 30px 28px 28px;
   display: flex; flex-direction: column; justify-content: center; gap: 12px; }
 .hb-post-title { font-size: 21px; font-weight: 600; line-height: 1.35; margin: 0; }
-.hb-post-title a { text-decoration: none; color: inherit;
-  transition: color .4s cubic-bezier(.22,.61,.36,1); }
+/* 标题底下那条下划线：平时缩在左边看不见，鼠标停到卡上再从左边一路长出来。
+   链接改成 inline-block，是为了让下划线只跟字一样长，而不是铺满整列。 */
+.hb-post-title a { text-decoration: none; color: inherit; display: inline-block;
+  position: relative;
+  transition: color .3s cubic-bezier(.32,.72,0,1); }
+.hb-post-title a::after { content: ''; position: absolute; left: 0; bottom: -2px;
+  width: 100%; height: 2px; border-radius: 2px; background: currentColor;
+  transform: scaleX(0); transform-origin: 0 50%;
+  transition: transform .35s cubic-bezier(.32,.72,0,1); }
 .hb-post-meta { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: #98a2b0; }
 .hb-meta-item { display: inline-flex; align-items: center; gap: 6px; }
 .hb-post-excerpt { font-size: 14px; line-height: 1.75; color: #5a6473; margin: 0; }
@@ -334,14 +371,29 @@ html.hb-dark .hb-card-title .hb-beta { color: #ffd88a; background: rgba(255, 196
   text-decoration: none; }
 .hb-post-hit:focus-visible { outline: 2px solid #2b7fb8; outline-offset: -4px; }
 
-/* 悬停：整卡轻轻抬起 + 影子浮起来 + 标题变蓝 + 封面缓慢推近。 */
+/* 悬停：整卡轻轻抬起 + 影子化开 + 边框隐掉换成内描边 + 标题下划线长出来 +
+   右下角滑出一枚圆钮 + 封面缓慢推近。参数整段照 xuioo 那套搬（-2px / 浅影 /
+   内描边 / cubic-bezier(.32,.72,0,1)），比原来那版「大蓝影子 + 蓝边框」干净。 */
 @media (hover: hover) and (pointer: fine) {
-  .hb-post:hover { transform: translateY(-4px);
-    box-shadow: 0 20px 44px rgba(20, 72, 110, .16);
-    border-color: rgba(43, 127, 184, .30); }
+  .hb-post:hover { transform: translateY(-2px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, .06);
+    border-color: transparent;
+    outline-color: var(--hb-post-ink); }
   .hb-post:hover .hb-post-title a { color: #2b7fb8; }
-  .hb-post:hover .hb-post-art-img { transform: scale(1.06); }
+  .hb-post:hover .hb-post-title a::after { transform: scaleX(1); }
+  .hb-post:hover .hb-post-art-img { transform: scale(1.05); }
+  .hb-post:hover .hb-post-arrow { opacity: 1; transform: translate(0, 0); }
 }
+
+/* 右下角那枚圆钮：平时藏在卡角外一点点，悬停时滑回原处并淡入。
+   pointer-events 关掉 —— 它盖在「整卡可点」那层链接上面，不关会挡住点击。 */
+.hb-post-arrow { position: absolute; right: 14px; bottom: 14px; z-index: 4;
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--hb-post-ink); color: var(--hb-post-ink-bg); font-size: 14px;
+  pointer-events: none; opacity: 0; transform: translate(8px, 8px);
+  transition: opacity .3s cubic-bezier(.32,.72,0,1),
+    transform .3s cubic-bezier(.32,.72,0,1); }
 
 /* 渐变封面：没在文章里放图时自动顶上来，放了图就让位给真图。
    五套冷色渐变轮着用（蓝 / 青 / 靛），贴角色的人鱼配色。
@@ -350,7 +402,7 @@ html.hb-dark .hb-card-title .hb-beta { color: #ffd88a; background: rgba(255, 196
 .hb-post-art { flex: 0 0 42%; order: 2; position: relative; overflow: hidden; }
 .hb-post-art-img { position: absolute; inset: 0; background-size: cover;
   background-position: center; transform: scale(1.001);
-  transition: transform .85s cubic-bezier(.22,.61,.36,1); }
+  transition: transform .6s cubic-bezier(.32,.72,0,1); }
 /* 左上角那点高光，让渐变不至于太平 */
 .hb-post-art::before { content: ''; position: absolute; inset: 0; z-index: 2;
   background: radial-gradient(120% 90% at 80% 15%, rgba(255, 255, 255, .30), transparent 60%); }
@@ -396,9 +448,10 @@ html.hb-dark .hb-card-title .hb-beta { color: #ffd88a; background: rgba(255, 196
   background: rgba(43, 127, 184, .10); color: #2b7fb8; font-size: 9px; }
 
 /* ---- 右列：今日一言（可点）---- */
-.hb-quote-card { cursor: pointer; transition: border-color .25s ease, box-shadow .25s ease; }
-.hb-quote-card:hover { border-color: rgba(43, 127, 184, .28);
-  box-shadow: 0 6px 20px rgba(43, 127, 184, .10); }
+/* 悬停手感交给通用的 .hb-card:hover（抬起 + 影子 + 内描边），
+   这里只管「鼠标是只小手」和按下去往下沉 1px 的那点反馈。
+   自己那套 transition 要撤掉，否则会把通用的过渡覆盖掉，抬起会变成硬跳。 */
+.hb-quote-card { cursor: pointer; }
 .hb-quote-card:active { transform: translateY(1px); }
 .hb-quote-card.is-asking { opacity: .62; }
 /* 换句时就地淡入，不跳行；卡片给个最小高度，长短句之间不会抖。 */
@@ -505,6 +558,8 @@ html.hb-dark .hb-card-title .hb-beta { color: #ffd88a; background: rgba(255, 196
   .hero-blog-col--side { flex-direction: column; }
   .hb-post { flex-direction: column; min-height: 0; }
   .hb-post-art { order: 0; flex: 0 0 150px; }
+  /* 窄屏时封面挪到卡顶，圆钮会压在正文上，直接收掉（触屏本来也没有悬停） */
+  .hb-post-arrow { display: none; }
   /* 手机上封面横在最上面，左右那套渐变化合就不成立了 ——
      改成往下化进正文，接缝一样看不见。 */
   .hb-post-art::after { background: linear-gradient(to bottom,
@@ -887,6 +942,11 @@ html.hb-dark .hero-loader-ring { border-color: rgba(206,238,252,.8); }
 html.hb-dark .hero-tab-card { background: #0e1720;
   box-shadow: 0 30px 90px rgba(0, 0, 0, .55); }
 html.hb-dark .hb-card { background: #16212c; border-color: rgba(255, 255, 255, .07); }
+@media (hover: hover) and (pointer: fine) {
+  html.hb-dark .hb-card:hover { background-color: #1b2833;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, .30);
+    outline-color: rgba(232, 238, 246, .5); }
+}
 html.hb-dark .hb-card-title { color: #e8eef6; }
 html.hb-dark .hb-name, html.hb-dark .hb-stat b, html.hb-dark .hb-list-title { color: #e8eef6; }
 html.hb-dark .hb-music-info b { color: #e8eef6; }
@@ -899,11 +959,11 @@ html.hb-dark .hb-weather-top b { color: #e8eef6; }
 
 /* 文章卡 */
 html.hb-dark .hb-post { background: #16212c; border-color: rgba(255, 255, 255, .07);
-  --hb-art-fade: 22, 33, 44; }
+  --hb-art-fade: 22, 33, 44;
+  --hb-post-ink: #e8eef6; --hb-post-ink-bg: #16212c; }
 html.hb-dark .hb-post-hit:focus-visible { outline-color: #7fd2f5; }
 @media (hover: hover) and (pointer: fine) {
-  html.hb-dark .hb-post:hover { box-shadow: 0 20px 44px rgba(0, 0, 0, .5);
-    border-color: rgba(79, 195, 247, .34); }
+  html.hb-dark .hb-post:hover { box-shadow: 0 4px 24px rgba(0, 0, 0, .30); }
   html.hb-dark .hb-post:hover .hb-post-title a { color: #7fd2f5; }
 }
 html.hb-dark .hb-post-excerpt { color: #a9b7c6; }
@@ -1091,10 +1151,9 @@ html.hb-dark .hb-cal-mini:hover { background: rgba(79, 195, 247, .14); }
    自己批注过的日子 = 底下一个小蓝点。
    颜色照旧成对写：白天一条、紧跟的 html.hb-dark 一条。
    ============================================================ */
-.hb-mini-cal-card { display: block; text-decoration: none; color: inherit;
-  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
-.hb-mini-cal-card:hover { border-color: rgba(43, 127, 184, .32);
-  box-shadow: 0 14px 30px rgba(43, 127, 184, .13); transform: translateY(-2px); }
+/* 悬停手感交给上面那条通用的 .hb-card:hover（抬起 + 影子 + 内描边），
+   这里只管内容排版。自己那套 transition 要撤掉，否则会把通用的过渡覆盖掉。 */
+.hb-mini-cal-card { display: block; text-decoration: none; color: inherit; }
 
 .hb-mini-cal-month { display: flex; align-items: center; justify-content: space-between;
   margin: -4px 0 10px; }
@@ -1125,8 +1184,10 @@ html.hb-dark .hb-cal-mini:hover { background: rgba(79, 195, 247, .14); }
 .hb-mc-fest--none { background: rgba(35, 42, 51, .05); color: #98a2b0; }
 .hb-mini-cal-foot { margin: 10px 0 0; font-size: 11px; color: #98a2b0; }
 
-html.hb-dark .hb-mini-cal-card:hover { border-color: rgba(127, 210, 245, .38);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, .3); }
+/* 黑夜里那三张能按的卡：描边换成亮的湖蓝，别的跟着通用规则走 */
+html.hb-dark .hb-card.hb-mini-cal-card:hover,
+html.hb-dark .hb-card.hb-quote-card:hover,
+html.hb-dark .hb-card.hb-weather-card:hover { outline-color: rgba(127, 210, 245, .6); }
 html.hb-dark .hb-mini-cal-month b { color: #e8eef6; }
 html.hb-dark .hb-mc-more { color: #7fd2f5; }
 html.hb-dark .hb-mc-week { color: #7e8b99; }
