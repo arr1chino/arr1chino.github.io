@@ -83,11 +83,22 @@
 .hero-about-line { margin: 0; display: flex; align-items: baseline; justify-content: center;
   font-size: clamp(16px, 1.7vw, 23px); letter-spacing: .04em; font-weight: 700; }
 .hero-about-lead { white-space: nowrap; }
-.hero-about-word { min-width: 3.8em; text-align: left; padding-left: .28em;
-  border-right: .1em solid currentColor; animation: hb-caret 1.05s linear infinite; }
+.hero-about-word { min-width: 3.8em; text-align: left; padding-left: .28em; }
+/* 打字机那根光标（2026-09-26 r80 修）：
+   原来是把光标画成整格右侧的边线（border-right），可这一格是按最长词
+   定死的 3.8em，字只占格子左边 —— 于是光标飘在最后一个字外面老远，
+   而且高度是整行行高（46px），比字面（约 31px）高出一大截，看着很突兀。
+   现在改成跟在最后一个字后面的小竖条：用 ::after 跟着文字流走，
+   宽度 .09em、高度 .9em（约等于字面高），底边压到基线下面一点点，
+   跟汉字站齐；闪烁还是原来那个节奏。 */
+.hero-about-word::after {
+  content: ''; display: inline-block; width: .09em; height: .9em;
+  margin-left: .1em; background: currentColor; vertical-align: -.1em;
+  animation: hb-caret 1.05s linear infinite;
+}
 @keyframes hb-caret {
-  0%, 50% { border-right-color: currentColor; }
-  50.01%, 100% { border-right-color: transparent; }
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
 }
 .hero-about-welcome { margin: 24px 0 0; font-family: 'Caveat', 'Segoe Script', cursive;
   font-weight: 400; font-size: clamp(19px, 2.3vw, 32px); letter-spacing: .46em; opacity: .84; }
