@@ -73,7 +73,42 @@
     #457e94 82.2%, #457d93 92.2%, #3c728a 98.4%);
   transition: opacity .55s cubic-bezier(.22,.61,.36,1); }
 .hero-loader.is-sky .hero-loader-veil { opacity: 0; }
-.hero-loader-art { position: relative; z-index: 1; width: 132px; height: 132px; margin-bottom: 30px; }
+/* 素材位：原来就一圈纯 CSS 水波（132px），现在换成那圈真在动的发光水环
+   （真素材是 .hero-ring-video，住在 .hero-sticky 里，见下）。
+   这一格只剩「兜底」：四个 span 里那圈水波和中间的光核。
+   水环的视频一播起来（脚本给它和这一格一起挂 .is-live）就把兜底撤掉 ——
+   两个脉动叠在同一格上会打架。水波的 opacity 写在关键帧里，声明式的 opacity
+   压不住它，所以这里用 visibility。 */
+.hero-loader-art { position: relative; z-index: 1; width: 240px; height: 240px; margin-bottom: 26px; }
+.hero-loader-art.is-live .hero-loader-ring,
+.hero-loader-art.is-live .hero-loader-core { animation: none; visibility: hidden; }
+@media (max-width: 560px) {
+  .hero-loader-art { width: 176px; height: 176px; margin-bottom: 22px; }
+}
+
+/* ===== 加载遮罩里那圈发光水环（真素材）=====
+   它是 hero.pug 里 .hero-sticky 的最后一个孩子，跟画布同辈 —— 为什么非要
+   放在那一层，见 hero.pug 里那行 video 上面的注释（一句话：屏幕混合只认
+   同一个隔离组里排在它下面的东西，搁在加载遮罩里就混不到海，黑的会露成方砖）。
+   这里只负责把它摆在跟 .hero-loader-art 那一格完全重合的位置上：
+   遮罩是「竖向居中 + 那圈水波 + 两行字」的一列，素材格因此不是画面正中，
+   而是正中再往上抬 53px（240 高的一半是 120，加起来 173）—— 这两个数就是
+   从实际布局里量出来的，改遮罩那一列的间距/字号时要跟着复核。 */
+.hero-ring-video { position: absolute; left: 50%; top: 50%;
+  width: 240px; height: 240px; margin: -173px 0 0 -120px;
+  object-fit: contain; mix-blend-mode: screen; pointer-events: none;
+  opacity: 0; visibility: hidden;
+  transition: opacity .6s cubic-bezier(.22,.61,.36,1), visibility .6s; }
+/* 视频报到（inline 脚本挂上 .is-live）才露脸；报到之前一直是透明的，
+   露出来的是上面那圈兜底水波。 */
+.hero-ring-video.is-live { opacity: 1; visibility: visible; }
+/* 角色浮出水面（hero.js 的 hideLoader）就淡出收工，别继续在角色脸上加光。 */
+.hero-ring-video.is-off { opacity: 0; visibility: hidden; }
+@media (max-width: 560px) {
+  /* 窄屏素材格缩到 176（上一条媒体查询），底下的两行字没变，
+     所以整列矮了 68，重心往下挪 2 —— 素材格顶边改成往上抬 139。 */
+  .hero-ring-video { width: 176px; height: 176px; margin: -139px 0 0 -88px; }
+}
 .hero-loader-core { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px;
   margin: -13px 0 0 -13px; border-radius: 50%;
   background: radial-gradient(circle at 38% 34%, #ffffff 0%, #cdf2ff 46%, #7fd4f0 100%);

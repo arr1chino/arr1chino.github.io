@@ -1063,6 +1063,13 @@ function hideLoader() {
   const el = document.getElementById('hero-loader');
   if (!el || el.classList.contains('is-done')) return;
   el.classList.add('is-done');
+  /* 遮罩里那圈发光水环（真素材是个视频，住在 .hero-sticky 里，见 hero.pug）
+     跟着遮罩一起淡出；淡完就把视频暂停，别让它一直在角色脸上空转烧电。 */
+  const ring = document.getElementById('hero-ring-video');
+  if (ring) {
+    ring.classList.add('is-off');
+    setTimeout(() => { try { ring.pause(); } catch (e) {} }, 700);
+  }
   setTimeout(() => el.remove(), 900);
 }
 
