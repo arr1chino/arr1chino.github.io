@@ -310,13 +310,9 @@
    这版把真正出声的播放器藏进卡里（看不见），画面上只剩下一条 4px 的细进度条
    加两个小圆钮：右边大的那个是播放 / 暂停，旁边带骰子的是换一首。 */
 .hb-music-btns { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; margin-left: auto; }
-.hb-music-step, .hb-music-toggle { border: 0; padding: 0; cursor: pointer; border-radius: 50%;
+.hb-music-toggle { border: 0; padding: 0; cursor: pointer; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   transition: background .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease; }
-.hb-music-step { width: 26px; height: 26px; font-size: 11px;
-  background: rgba(43, 127, 184, .10); color: #2b7fb8; }
-.hb-music-step:hover { background: rgba(43, 127, 184, .22); }
-.hb-music-step:active { transform: scale(.94); }
 .hb-music-toggle { width: 34px; height: 34px; font-size: 12px;
   background: #2b7fb8; color: #fff; box-shadow: 0 4px 12px rgba(43, 127, 184, .30); }
 .hb-music-toggle:hover { transform: translateY(-1px); }
@@ -343,6 +339,27 @@
 /* 连着几首都放不出来的时候，时间那行变个色提个醒 */
 .hb-music-card.is-miss .hb-music-times { color: #c07a3e; }
 .hb-music-card .hb-card-hint a { color: #2b7fb8; }
+
+/* ---- 右列：每日三首的那三行 ----
+   一行一首：左边小封面（用真专辑图，取不到才用渐变），中间歌名 + 歌手，
+   右边一个小圆钮表示「点这首能播 / 正在播」。 */
+.hb-music-batch { margin: 2px 0 0; }
+.hb-music-batch li { padding: 7px 8px; margin: 0 -8px; }
+.hb-music-batch .hb-music-cover { background-color: rgba(43, 127, 184, .12); }
+.hb-music-batch .hb-music-play i { pointer-events: none; }
+/* 这一组下面的那条栏：换一批 + 一句说明 */
+.hb-music-foot { display: flex; align-items: center; gap: 10px; margin: 10px 0 0;
+  padding-top: 10px; border-top: 1px solid rgba(35, 42, 51, .07); }
+.hb-music-more { display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  border: 0; border-radius: 999px; padding: 6px 13px; font-size: 12px; line-height: 1;
+  font-family: inherit;
+  background: rgba(43, 127, 184, .10); color: #2b7fb8;
+  transition: background .2s ease, transform .2s ease; }
+.hb-music-more:hover { background: rgba(43, 127, 184, .22); }
+.hb-music-more:active { transform: scale(.96); }
+.hb-music-more i { font-size: 10px; }
+.hb-music-note { font-size: 11px; color: #aeb6c2; margin-left: auto;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #hb-music-audio { display: none; }
 
 /* ===== 卡片里的「文字由浅入深」 =====
@@ -650,19 +667,17 @@ html.hero-mode #footer { margin-top: -15px !important; }
 .hb-weather-card.is-error .hb-weather-top i { color: #9aa7b4; }
 .hb-weather-foot:empty { display: none; }
 
-/* ---- ② 右栏：随机音乐 ----
-   复用原来歌单那套 .hb-music-cover / .hb-music-info / .hb-music-play，
-   只是从「一列歌名」变成「当前这一首」。 */
-.hb-music-now { display: flex; align-items: center; gap: 10px; padding: 6px 8px;
-  border-radius: 12px; cursor: pointer; transition: background .2s ease; }
-.hb-music-now:hover { background: rgba(43, 127, 184, .08); }
-.hb-music-now .hb-music-cover { background-size: cover; background-position: center; }
+/* ---- ② 右栏：每日三首的「正在播放」那一行 ----
+   一行说清现在放的是哪首，右边跟着播放 / 暂停钮；下面才是进度条和三首歌。 */
+.hb-music-now { display: flex; align-items: center; gap: 10px; padding: 4px 2px 2px; }
+.hb-music-kicker { flex: 0 0 auto; align-self: flex-start; margin-top: 3px;
+  font-size: 11px; color: #aeb6c2; letter-spacing: .06em; }
 .hb-music-now .hb-music-info b { font-size: 14px; }
 /* 换歌时名字就地淡入一下（跟「今日一言」同一个动画） */
 .hb-music-now .hb-music-info b.is-swap { animation: hb-quote-in .38s cubic-bezier(.22,.61,.36,1); }
 /* 正在跟网易云取下一首：先把名字压淡，等确认能放了才换成新的 */
 .hb-music-info { transition: opacity .25s ease; }
-.hb-music-card.is-loading .hb-music-info { opacity: .45; }
+.hb-music-card.is-loading .hb-music-now .hb-music-info { opacity: .45; }
 
 /* ---- ③ 右下角三个小圆钮 ----
    顺序从上到下：回到顶部 / 白天黑夜 / 回首页。
@@ -736,9 +751,16 @@ html.hb-dark .hb-link { color: #b9c7d6; }
 html.hb-dark .hb-link:hover { background: rgba(79, 195, 247, .12); color: #7fd2f5; }
 html.hb-dark .hb-link-icon { background: #0e1720; }
 html.hb-dark .hb-link-fallback { color: #7fd2f5; }
-html.hb-dark .hb-music-now:hover { background: rgba(79, 195, 247, .10); }
-html.hb-dark .hb-music-step { background: rgba(79, 195, 247, .14); color: #7fd2f5; }
-html.hb-dark .hb-music-step:hover { background: rgba(79, 195, 247, .26); }
+html.hb-dark .hb-music-kicker { color: #8697a8; }
+html.hb-dark .hb-music-item:hover { background: rgba(79, 195, 247, .10); }
+html.hb-dark .hb-music-item.is-active { background: rgba(79, 195, 247, .16); }
+html.hb-dark .hb-music-item.is-active .hb-music-info b { color: #7fd2f5; }
+html.hb-dark .hb-music-play { background: rgba(79, 195, 247, .14); color: #7fd2f5; }
+html.hb-dark .hb-music-item.is-active .hb-music-play { background: #2b7fb8; color: #fff; }
+html.hb-dark .hb-music-more { background: rgba(79, 195, 247, .14); color: #7fd2f5; }
+html.hb-dark .hb-music-more:hover { background: rgba(79, 195, 247, .26); }
+html.hb-dark .hb-music-note { color: #8697a8; }
+html.hb-dark .hb-music-foot { border-top-color: rgba(255, 255, 255, .07); }
 html.hb-dark .hb-music-toggle { background: #2b7fb8; color: #fff; }
 html.hb-dark .hb-music-bar-bg { background: rgba(79, 195, 247, .18); }
 html.hb-dark .hb-music-bar-fill { background: #7fd2f5; }
@@ -992,3 +1014,14 @@ html.hb-dark .hb-cal-festchip { background: rgba(255, 143, 122, .14); color: #ff
    ============================================================ */
 #menus .menus_items:empty,
 #sidebar-menus .menus_items:empty { display: none; }
+
+/* 窄屏收尾：手机上卡片是整屏宽的，
+   ① 「换一批」右边那行小字原来贴着卡片最右边，会被右下角那三个悬浮钮压住，
+      改成换行后单独占一行、靠左放；
+   ② 三个悬浮钮本身也缩一圈、往角上挪一点，少挡内容。 */
+@media (max-width: 768px) {
+  .hb-music-foot { flex-wrap: wrap; row-gap: 8px; }
+  .hb-music-note { flex: 1 1 100%; margin-left: 0; }
+  .hb-fabs { right: 12px; bottom: 14px; gap: 8px; }
+  .hb-fab { width: 34px; height: 34px; font-size: 13px; }
+}
