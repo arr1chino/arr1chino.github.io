@@ -1011,11 +1011,63 @@ function frame(now) {
     Object.values(ACTORS).forEach((a) => { a.model.position.y = breathe; });
 
     renderer.render(scene, camera);
+  } else if (renderer && skyMat) {
+    /* 模型还在路上：先把海画出来顶着（见下面 renderSkyOnly 的说明）。
+       这一支跑的时候 ready 还是 false，所以相机、眨眼、分镜全都不用算。 */
+    renderSkyOnly(now);
+    markSkyLive();
   }
   requestAnimationFrame(frame);
 }
 
+/* 模型还没解析完的时候，先把「海」画出来。
+   这片海跟角色完全无关（纯屏幕坐标的渐变 + 缓慢漂移的流光），所以完全可以
+   先画：进来第一帧就有在流动的水，而不是一块死蓝；更要紧的是 ——
+   等角色真的浮出来那一瞬，背景一点没变，遮罩淡出时不会出现
+   「两片蓝对不上」的接缝（以前那版就是拿静态渐变去凑，海里那条亮带一直在漂，
+   怎么调都对不准）。
+   相机用默认位置：海是球心在原点的一个大球，相机偏几个单位看不出来。
+   顺手把「平滑态」那三个色号也设成第一幕的目标值 —— 这样等 ready
+   接管渲染时，底色不会突然从白天版淡到黑夜版（黑天进来会闪一下白）。 */
+function renderSkyOnly(now) {
+  const darkNow = document.documentElement.classList.contains('hb-dark');
+  const mul = darkNow ? DARK_BG : 1;
+  bgTop.setHex(KEYS[0].bg).multiplyScalar(mul);
+  bgBot.setHex(KEYS[0].bg2).multiplyScalar(mul);
+  bgColor.copy(bgBot);
+  skyMat.uniforms.uTop.value.copy(bgTop);
+  skyMat.uniforms.uBot.value.copy(bgBot);
+  skyMat.uniforms.uFlow.value = FLOW_AMOUNT * (darkNow ? DARK_FLOW : 1);
+  skyMat.uniforms.uTime.value = now * 0.001;
+  scene.background = bgColor;
+  renderer.render(scene, camera);
+  if (stage && stage.style.backgroundColor !== '#' + bgBot.getHexString()) {
+    stage.style.backgroundColor = '#' + bgBot.getHexString();
+  }
+}
+
+/* 海画出来了 —— 把遮罩里那层「挡空画布」的底色撤掉（见 hero.css）。
+   从这一刻起遮罩只剩水波和文字，浮在真正在动的海面上。 */
+let skyLive = false;
+function markSkyLive() {
+  if (skyLive) return;
+  skyLive = true;
+  const el = document.getElementById('hero-loader');
+  if (el) el.classList.add('is-sky');
+}
+
+/* 加载遮罩收场：加一个类让它整层淡出去（动画写在 hero.css），
+   淡完再把节点摘掉 —— 留着它虽然看不见，但会一直挡着点击。
+   重复调用安全：已经淡出去过就直接返回。 */
+function hideLoader() {
+  const el = document.getElementById('hero-loader');
+  if (!el || el.classList.contains('is-done')) return;
+  el.classList.add('is-done');
+  setTimeout(() => el.remove(), 900);
+}
+
 function fallbackPoster() {
+  hideLoader();
   const poster = document.createElement('div');
   poster.className = 'hero-poster';
   poster.style.backgroundImage = 'url(/img/top.png)';
@@ -1069,28 +1121,49 @@ function initCardReveal() {
 function boot() {
   initNavSkin();
   initCardReveal();
+  /* 兜底：不管下面是正常出模型、还是画不出来退成静态海报，
+     都不能让加载遮罩永远挂着。真卡住了（网络断在半路、一直不报错），
+     12 秒把副标题换成提示，18 秒直接放行 —— 宁可让用户看见空海，
+     也好过永远转圈。正常情况这两个定时器都轮不到。 */
+  setTimeout(() => {
+    const sub = document.getElementById('hero-loader-sub');
+    if (sub) sub.textContent = '这片海有点大，再等一下下…';
+  }, 12000);
+  setTimeout(hideLoader, 18000);
+
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const smallScreen = window.innerWidth < 760 && (navigator.hardwareConcurrency || 4) <= 4;
   if (reduced || smallScreen) { fallbackPoster(); ready = false; return; }
 
   try { initRenderer(); } catch (e) { fallbackPoster(); return; }
+  /* 画布尺寸要在这一帧就定下来，不能等 ready 那一步：
+     模型加载期间画的是同一片海，尺寸晚定就白画一段低分辨率的。 */
+  resize();
 
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+  /* 首屏加载耗时探针：每段结束记一个时间戳，量「进页面 → 角色能画」到底花在哪。
+     不参与任何逻辑，只是把阶段耗时挂在 window.__heroPerf 上方便排查。 */
+  const perf = window.__heroPerf = { t0: Math.round(performance.now()), phases: [] };
+  const mark = (label) => perf.phases.push([label, Math.round(performance.now())]);
   const jobs = MODEL_DEFS.map((def) => new Promise((resolve, reject) => {
     loader.load(def.url, (gltf) => {
+      mark('glb-parsed');
       const actor = {
         model: gltf.scene, boneMap: new Map(), restRot: new Map(), morphMeshes: [],
         box: new THREE.Box3(), size: new THREE.Vector3(), center: new THREE.Vector3(),
       };
       toonify(actor.model, actor);
+      mark('toonify');
       relieveNeckCollars(actor.model);
       settleNeckLayers(actor.model);
+      mark('neck-fix');
       actor.model.traverse((o) => {
         if (o.isBone) {
           actor.boneMap.set(o.name, o);
           if (!actor.restRot.has(o.name)) actor.restRot.set(o.name, { x: o.rotation.x, y: o.rotation.y, z: o.rotation.z });
         }
       });
+      mark('bone-map');
       actor.model.visible = true;
       ACTORS[def.id] = actor;
       scene.add(actor.model);
@@ -1100,9 +1173,16 @@ function boot() {
 
   Promise.all(jobs).then(() => {
     measure();
+    mark('measure');
     buildEyeRig();
+    mark('eye-rig');
     resize();
     ready = true;
+    mark('ready');
+    /* 等真正画出一帧带角色的画面再撤遮罩：ready 只是「数据齐了」，
+       紧接着的那一帧里还有着色器首次编译，撤早了会闪一下空海。
+       两层 rAF 就是「等下一帧画完」的意思。 */
+    requestAnimationFrame(() => requestAnimationFrame(hideLoader));
     window.__hero = {
       set(p) { frozen = p; progress = p; target = p; applyKey(p); renderer.render(scene, camera); },
       unfreeze() { frozen = null; },

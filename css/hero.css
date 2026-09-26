@@ -43,6 +43,62 @@
     rgba(0,0,0,.09) 50%, rgba(0,0,0,0) 78%); }
 .hero-poster { position: absolute; inset: 0; background-size: cover; background-position: center 30%; display: none; }
 
+/* ===== 首屏加载遮罩 =====
+   3D 模型要在浏览器里解析一段时间（几百毫秒到一两秒，看网速和机器）。
+   现在这段时间并不是「空海」：hero.js 会先把海画出来（renderSkyOnly），
+   所以这一层只干三件事 ——
+     1) 盖住「画布第一帧还没出来」那零点几秒（.hero-loader-veil）
+     2) 转那圈水波 + 两行字，告诉人「正在加载」
+     3) 挡住底下的点击
+   角色真正画出来的那一帧，遮罩整层淡出；因为背景从头到尾都是同一片
+   在动的水，淡出时不会有任何接缝。
+   注意：动画只允许用 transform / opacity —— 模型解析时主线程会卡住一秒多，
+   只有交给合成器的那两种属性才能在那段时间里继续动。
+   「.hero-loader-art」是留给自定义动画素材的替换位，现在先用纯 CSS 的水波顶着。 */
+.hero-loader { position: fixed; inset: 0; z-index: 120;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: transparent;
+  transition: opacity .8s cubic-bezier(.22,.61,.36,1), visibility .8s; }
+/* 加载中还挡住底下的点击，免得点穿到看不见的导航 / 卡片上去 */
+.hero-loader.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
+/* 盖住「画布第一帧还没出来」那一小段。以前这一层是常驻的，还按量出来的
+   色标去凑海的颜色 —— 问题是海里那条亮带一直在慢慢漂，静态渐变永远对不准，
+   遮罩淡出的时候就会看见一块对不上的蓝（实测中段能差到 90 多）。
+   现在 hero.js 让海从第一帧就真的画出来，这层只要撑到那一刻就退场，
+   之后露出来的就是同一片在动的水，接缝从根上没有了。 */
+.hero-loader-veil { position: absolute; inset: 0; z-index: 0; opacity: 1;
+  background: linear-gradient(180deg,
+    #326e85 1.8%, #417e94 8.9%, #4f8ea4 17.8%, #39748a 28.9%,
+    #266078 40%, #235d75 50%, #235c74 60%, #30677e 71.1%,
+    #457e94 82.2%, #457d93 92.2%, #3c728a 98.4%);
+  transition: opacity .55s cubic-bezier(.22,.61,.36,1); }
+.hero-loader.is-sky .hero-loader-veil { opacity: 0; }
+.hero-loader-art { position: relative; z-index: 1; width: 132px; height: 132px; margin-bottom: 30px; }
+.hero-loader-core { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px;
+  margin: -13px 0 0 -13px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #ffffff 0%, #cdf2ff 46%, #7fd4f0 100%);
+  box-shadow: 0 0 26px rgba(214,252,255,.85), 0 0 60px rgba(150,228,252,.55);
+  animation: heroLoaderCore 2.6s ease-in-out infinite; }
+.hero-loader-ring { position: absolute; inset: 0; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.9);
+  animation: heroLoaderRipple 2.6s cubic-bezier(.22,.61,.36,1) infinite; }
+.hero-loader-ring:nth-child(2) { animation-delay: .87s; }
+.hero-loader-ring:nth-child(3) { animation-delay: 1.74s; }
+@keyframes heroLoaderRipple {
+  0%   { transform: scale(.18); opacity: 0; }
+  12%  { opacity: .85; }
+  70%  { opacity: .26; }
+  100% { transform: scale(1); opacity: 0; }
+}
+@keyframes heroLoaderCore {
+  0%, 100% { transform: scale(1); opacity: .92; }
+  50%      { transform: scale(1.16); opacity: 1; }
+}
+.hero-loader-title { position: relative; z-index: 1; margin: 0; font-size: 22px; font-weight: 600; letter-spacing: .3em;
+  text-indent: .3em; color: #fff; text-shadow: 0 2px 14px rgba(16,84,120,.45); }
+.hero-loader-sub { position: relative; z-index: 1; margin: 10px 0 0; font-size: 13px; letter-spacing: .12em;
+  color: rgba(255,255,255,.9); text-shadow: 0 2px 12px rgba(16,84,120,.4); }
+
 .hero-panels { position: absolute; inset: 0; pointer-events: none; }
 .hero-panel { position: absolute; opacity: 0; will-change: transform, opacity; }
 .hero-panel-inner { background: rgba(255,255,255,.74); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
@@ -767,6 +823,20 @@ html.hb-dark .hero-flow {
     radial-gradient(40% 32% at 80% 70%, rgba(72, 172, 216, .24) 0%, rgba(72, 172, 216, 0) 72%),
     radial-gradient(66% 50% at 50% 112%, rgba(3, 16, 28, .58) 0%, rgba(3, 16, 28, 0) 72%),
     linear-gradient(180deg, #1b5573 0%, #164a66 40%, #0f3a52 72%, #0b2c40 100%); }
+
+/* 遮罩底色的白天版：亮带位置跟黑天版完全一致（17.8% / 82%），只是整片海亮一档。
+   它只负责撑到「海画出第一帧」为止，两个版本还是得一起改。 */
+html:not(.hb-dark) .hero-loader-veil {
+  background: linear-gradient(180deg,
+    #55bae0 1.8%, #5dc0e6 8.9%, #6ed1f6 17.8%, #62c3e8 28.9%,
+    #4cacd3 40%, #47a6cd 50%, #4facd3 60%, #64c0e6 71.1%,
+    #59b2d9 82.2%, #3f98c0 92.2%, #348cb6 98.4%); }
+/* 默认（黑天）那串色标写在 .hero-loader-veil 本体上；这里只处理白天要盖掉它的情况。
+   注意顺序：这条规则的选择器权重比 .hero-loader-veil 高，所以能覆盖。 */
+html.hb-dark .hero-loader-core {
+  background: radial-gradient(circle at 38% 34%, #ffffff 0%, #a9dcf2 46%, #4f9fc4 100%);
+  box-shadow: 0 0 24px rgba(140,214,245,.7), 0 0 54px rgba(90,180,220,.45); }
+html.hb-dark .hero-loader-ring { border-color: rgba(206,238,252,.8); }
 
 /* 白卡 → 深夜蓝卡 */
 html.hb-dark .hero-tab-card { background: #0e1720;
