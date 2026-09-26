@@ -566,6 +566,34 @@ html.hb-dark .hb-card-title .hb-beta { color: #ffd88a; background: rgba(255, 196
 /* 浅海底色（滚动条改成白的） */
 html.hero-mode { --scrollbar-color: rgba(255,255,255,.85); background-color: #3d9ac2 !important; }
 
+/* ===== 页面右侧那条滚动条：静止细、一靠上去「吸」地胀开 =====
+    原生滚动条不能直接改宽度做动画，但有个绕法：把整条轨道做宽（9px），
+    滑块本身用「透明边框 + background-clip: content-box」把可见部分挤细 ——
+    于是"看起来的粗细" = 轨道宽 - 两边边框。鼠标靠上去只要把边框调窄，
+    滑块就胀开了；顺手把边框宽度做成可过渡的，胀开就是滑出来的而不是跳出来的。
+    静止时露 5px（跟原来那条一样细，所以平时看不出区别），
+    可抓的范围却一直是 9px，比原来 5px 好按多了。
+   只写 html/body，是为了不动代码块自己那条横向滚动条（它还是主题原来那套）。 */
+html { --scrollbar-hover-color: var(--scrollbar-color); }
+html.hero-mode { --scrollbar-hover-color: rgba(255, 255, 255, 1); }
+html.hb-dark { --scrollbar-hover-color: rgba(232, 249, 255, .94); }
+
+html::-webkit-scrollbar, body::-webkit-scrollbar { width: 9px; }
+html::-webkit-scrollbar-track, body::-webkit-scrollbar-track { background: transparent; }
+html::-webkit-scrollbar-thumb, body::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-color);
+  background-clip: content-box; border: 2px solid transparent; border-radius: 999px;
+  transition: border-width .18s cubic-bezier(.22,.61,.36,1), background-color .18s ease; }
+/* 靠上去胀到 7px，按住拖动再胀到 9px（边框越窄，露出来的滑块越粗）。
+   is-sb-hot / is-sb-drag 是 hb-ui.js 贴上去的记号：原生滚动条的 :hover
+   有时候不太听话，自己盯一下鼠标到没到右边缘更稳。 */
+html.is-sb-hot::-webkit-scrollbar-thumb, body.is-sb-hot::-webkit-scrollbar-thumb,
+html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover {
+  border-width: 1px; background-color: var(--scrollbar-hover-color); }
+html.is-sb-drag::-webkit-scrollbar-thumb, body.is-sb-drag::-webkit-scrollbar-thumb,
+html::-webkit-scrollbar-thumb:active, body::-webkit-scrollbar-thumb:active {
+  border-width: 0; background-color: var(--scrollbar-hover-color); }
+
 /* 鼠标丝带（我们自己的 .hb-ribbon）现在是整站都有的：
    首页整屏是海蓝，走加法发光；别的页白卡当道，脚本会自动换成半透明水彩，
    两层画法都由 /js/hb-ribbon.js 自己判断，CSS 这边不用管。

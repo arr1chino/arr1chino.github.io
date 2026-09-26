@@ -84,10 +84,44 @@
     document.body.insertBefore(flow, document.body.firstChild);
   }
 
+  /* 右边那条滚动条：鼠标贴到窗口最右边时，给她贴个记号，
+     让滑块「吸」地胀开一点，按住拖动再胀一档（在 css 里）。
+     鼠标一旦压到滚动条上，网页这边就收不到移动事件了，
+     所以判定线取「离右边还差 1px」——效果上就是光标一贴边就触发。 */
+  function bindScrollbar() {
+    var hot = false, drag = false;
+
+    function paint() {
+      root.classList.toggle('is-sb-hot', hot);
+      root.classList.toggle('is-sb-drag', drag);
+    }
+
+    document.addEventListener('mousemove', function (e) {
+      var near = e.clientX >= root.clientWidth - 1;
+      if (near !== hot) { hot = near; paint(); }
+    }, { passive: true });
+
+    document.addEventListener('mousedown', function () {
+      if (hot && !drag) { drag = true; paint(); }
+    }, true);
+
+    document.addEventListener('mouseup', function () {
+      if (drag) { drag = false; paint(); }
+    }, true);
+
+    function reset() {
+      if (!hot && !drag) return;
+      hot = false; drag = false; paint();
+    }
+    document.addEventListener('mouseleave', reset);
+    window.addEventListener('blur', reset);
+  }
+
   function boot() {
     paintTheme(readTheme());
     buildOcean();
     buildButtons();
+    bindScrollbar();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
