@@ -42,7 +42,12 @@
   root.innerHTML =
     '<div class="hbc-shell">' +
       '<div class="hbc-head">' +
-        '<span class="hbc-dot" aria-hidden="true"></span>' +
+        '<span class="hbc-ava">' +
+          '<img src="/img/voyanissa-avatar.png" ' +
+            'srcset="/img/voyanissa-avatar.png 1x, /img/voyanissa-avatar@2x.png 2x" ' +
+            'alt="" width="42" height="42" decoding="async">' +
+          '<span class="hbc-dot" aria-hidden="true"></span>' +
+        '</span>' +
         '<span class="hbc-who">沃雅妮莎<small>离群的水妖 · 首席女高音</small></span>' +
         '<span class="hbc-meter" id="hbc-meter">读取中…</span>' +
       '</div>' +
