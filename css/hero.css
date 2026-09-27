@@ -288,9 +288,13 @@
 .hero-blog { display: grid; grid-template-columns: 300px minmax(0, 1fr) 300px; gap: 22px;
   max-width: 1800px; margin: 0 auto; padding: 0 24px; }
 .hero-blog-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-/* 中列不再硬撑 106vh —— 那是文章卡被拉高的元凶。
-   现在三列谁高听谁的（左右两列的小模块说了算），白卡跟着收短。 */
-.hero-blog-col--main { min-height: 0; }
+/* 中列的高度下限 —— 也就是「博客区延长」的那个旋钮。
+   中列决定白卡多高：文章卡 + 底下那张「文章归档」索引。
+   min-height 给的是一个「地板」：文章多了、比这个高，就听文章的；
+   文章少的时候不至于整块白卡矮得像张便签。
+   现在两篇文章 + 归档卡大概 1000px 出头，所以地板给到 1180 才看得见效果。
+   想再高/再矮就改这一个数字（视口高度会自动跟着，换屏不会跑偏）。 */
+.hero-blog-col--main { min-height: min(1180px, 134vh); }
 /* 侧栏卡片一律从上往下排。
    之前用 space-between，是两列卡片数量不一样时会被拉开——
    现在左列只剩一张资料卡、右列一张一言一张歌单，更不能拉。 */
@@ -318,9 +322,11 @@
 /* 侧栏里真能按的三张（本月日程 / 今日一言 / 你在的地方）：手感一样，
    只把描边换成蓝色，一眼区分「这张能按」和「这张只是摆着」。
    键盘 Tab 停上去也给一圈看得见的蓝框（内描边本身是透明的，得单独补）。 */
-.hb-card.hb-mini-cal-card:focus-visible { outline: 2px solid #2b7fb8; outline-offset: 3px; }
+.hb-card.hb-mini-cal-card:focus-visible,
+.hb-card.hb-chat-card:focus-visible { outline: 2px solid #2b7fb8; outline-offset: 3px; }
 @media (hover: hover) and (pointer: fine) {
   .hb-card.hb-mini-cal-card:hover,
+  .hb-card.hb-chat-card:hover,
   .hb-card.hb-quote-card:hover,
   .hb-card.hb-weather-card:hover { outline-color: rgba(43, 127, 184, .55); }
 }
@@ -1221,6 +1227,7 @@ html.hb-dark .hb-cal-mini:hover { background: rgba(79, 195, 247, .14); }
 
 /* 黑夜里那三张能按的卡：描边换成亮的湖蓝，别的跟着通用规则走 */
 html.hb-dark .hb-card.hb-mini-cal-card:hover,
+html.hb-dark .hb-card.hb-chat-card:hover,
 html.hb-dark .hb-card.hb-quote-card:hover,
 html.hb-dark .hb-card.hb-weather-card:hover { outline-color: rgba(127, 210, 245, .6); }
 html.hb-dark .hb-mini-cal-month b { color: #e8eef6; }
@@ -1235,6 +1242,80 @@ html.hb-dark .hb-mc-dot { background: #7fd2f5; }
 html.hb-dark .hb-mc-fest { background: rgba(255, 143, 122, .14); color: #ff9d86; }
 html.hb-dark .hb-mc-fest--none { background: rgba(255, 255, 255, .05); color: #8697a8; }
 html.hb-dark .hb-mini-cal-foot { color: #8697a8; }
+
+/* ============================================================
+   2026-09-27 r95 侧栏「和沃聊天」入口（左栏，日历下面那张）
+   点整张卡进 /chat/ 那一页。卡里就三样东西：
+   头像位那颗会呼吸的水珠、两行字、右下角一个「去找她 →」。
+   呼吸圈只用 transform / opacity（首页在解析 3D 模型时会卡一下，
+   用 left/top/width 这类属性动画会一起掉帧）。
+   悬停手感不用另写：上面那组通用规则已经把这张卡算进「能按的蓝描边」里了。
+   ============================================================ */
+.hb-chat-card { display: block; text-decoration: none; color: inherit; }
+.hb-chat-row { display: flex; align-items: center; gap: 12px; }
+.hb-chat-orb { position: relative; flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px;
+  background: radial-gradient(120% 120% at 32% 24%, #9fe9ff 0%, #2f86b4 58%, #17536f 100%);
+  box-shadow: 0 6px 16px rgba(43, 127, 184, .3); }
+/* 外面那圈水波：从水珠边上荡开就消失，循环往复 */
+.hb-chat-orb::after { content: ''; position: absolute; inset: -5px; border-radius: 50%;
+  border: 1px solid rgba(43, 127, 184, .5);
+  animation: hbChatPing 2.8s cubic-bezier(.22,.61,.36,1) infinite; }
+@keyframes hbChatPing {
+  0% { transform: scale(.84); opacity: .9; }
+  70%, 100% { transform: scale(1.28); opacity: 0; }
+}
+.hb-chat-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.hb-chat-text b { font-size: 13.5px; font-weight: 600; color: #24313d; line-height: 1.4; }
+.hb-chat-text em { font-style: normal; font-size: 11.5px; line-height: 1.6; color: #98a2b0;
+  margin-top: 3px; }
+.hb-chat-go { display: inline-flex; align-items: center; gap: 4px; margin-top: 13px;
+  font-size: 12px; font-weight: 600; color: #2b7fb8; }
+.hb-chat-go i { font-size: 9px; transition: transform .3s cubic-bezier(.32,.72,0,1); }
+@media (hover: hover) and (pointer: fine) {
+  .hb-card.hb-chat-card:hover .hb-chat-go i { transform: translateX(2px); }
+}
+html.hb-dark .hb-chat-text b { color: #e8eef6; }
+html.hb-dark .hb-chat-text em { color: #8697a8; }
+html.hb-dark .hb-chat-go { color: #7fd2f5; }
+html.hb-dark .hb-chat-orb { box-shadow: 0 6px 16px rgba(0, 0, 0, .45); }
+html.hb-dark .hb-chat-orb::after { border-color: rgba(127, 210, 245, .5); }
+
+/* ============================================================
+   2026-09-27 r95 中列「文章归档」索引
+   最新文章那两张卡下面垫一张干净的一行一条索引。
+   它有两个作用：一是不让中列在最后一张卡下面空一大片；
+   二是以后文章越写越多，这一列（连同白卡）自然就越来越长。
+   ============================================================ */
+.hb-archive-card { flex: 0 0 auto; }
+.hb-archive-list { list-style: none; margin: 0; padding: 0; }
+.hb-archive-link { display: flex; align-items: baseline; gap: 14px;
+  padding: 9px 10px; margin: 0 -10px; border-radius: 10px;
+  text-decoration: none; color: #5a6473; font-size: 13.5px;
+  transition: background-color .25s cubic-bezier(.32,.72,0,1),
+    color .25s cubic-bezier(.32,.72,0,1); }
+.hb-archive-link:hover { background: rgba(43, 127, 184, .075); color: #2b7fb8; }
+.hb-archive-title { flex: 1 1 auto; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.hb-archive-date { flex: 0 0 auto; font-size: 12px; color: #98a2b0;
+  font-variant-numeric: tabular-nums; }
+.hb-archive-link:hover .hb-archive-date { color: #2b7fb8; }
+.hb-archive-foot { margin: 14px 0 0; font-size: 11.5px; color: #aeb6c2; }
+html.hb-dark .hb-archive-link { color: #b9c7d6; }
+html.hb-dark .hb-archive-link:hover { background: rgba(79, 195, 247, .12); color: #7fd2f5; }
+html.hb-dark .hb-archive-date { color: #8697a8; }
+html.hb-dark .hb-archive-link:hover .hb-archive-date { color: #7fd2f5; }
+html.hb-dark .hb-archive-foot { color: #8697a8; }
+
+/* ---- 中列最后那张「关于这里」 ----
+   只有两篇文章的时候，归档下面会空出好几百像素的白，看着像没加载完。
+   这张卡就是把那片空白填实：一句引子 + 两行小字，别的不放。 */
+.hb-about-card { flex: 0 0 auto; }
+.hb-about-lead { margin: 0 0 12px; font-size: 13.5px; line-height: 1.8; color: #3a444f; }
+.hb-about-line { margin: 0 0 8px; font-size: 12.5px; line-height: 1.8; color: #8697a8; }
+.hb-about-line:last-child { margin-bottom: 0; }
+html.hb-dark .hb-about-lead { color: #ccd8e4; }
+html.hb-dark .hb-about-line { color: #8697a8; }
 
 /* 日历整页里也把节日标出来：日子淡红、名字写格子里，右下角再列一行。
    （这样从首页那张小日历点进来，红色标记不会「消失」。） */
@@ -1288,4 +1369,131 @@ html.hb-dark .hb-cal-festchip { background: rgba(255, 143, 122, .14); color: #ff
   .hb-music-note { flex: 1 1 100%; margin-left: 0; }
   .hb-fabs { right: 12px; bottom: 14px; gap: 8px; }
   .hb-fab { width: 34px; height: 34px; font-size: 13px; }
+}
+
+/* ============================================================
+   2026-09-27 r95 「和沃聊天」整页（/chat/ 那一页）
+   页面本身只有一个空占位，聊天窗是 /js/hb-chat.js 画进去的，
+   所以这一整块都用 hbc- 开头的名字（hb chat 的 c）。
+
+   风格：白天是一张白卡里漂着蓝气泡；黑夜整块沉进水里
+   （深海底色 + 亮蓝描边），跟站点其他地方的夜配色一路。
+   动效只走 opacity / transform —— 首页那颗模型在解析时会占住主线程，
+   这里再堆 left / width 这类属性动画会把两边一起拖卡。
+   ============================================================ */
+.hbc-page { margin: 4px 0 8px; }
+
+.hbc-shell { display: flex; flex-direction: column;
+  height: min(72vh, 720px); min-height: 420px;
+  border-radius: 20px; overflow: hidden;
+  border: 1px solid rgba(43, 127, 184, .18);
+  background: linear-gradient(180deg, #fbfdff 0%, #f4f8fc 100%);
+  box-shadow: 0 18px 48px rgba(9, 48, 72, .1); }
+
+/* ---- 顶栏：一颗亮着的小水珠 + 名字 + 右上角余量 ---- */
+.hbc-head { flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
+  padding: 15px 20px; border-bottom: 1px solid rgba(43, 127, 184, .14); }
+.hbc-dot { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%;
+  background: #2b7fb8; box-shadow: 0 0 0 4px rgba(43, 127, 184, .14); }
+.hbc-who { display: flex; flex-direction: column; font-size: 14px; font-weight: 700;
+  letter-spacing: .02em; color: #24313d; line-height: 1.35; }
+.hbc-who small { font-size: 11.5px; font-weight: 400; color: #98a2b0; letter-spacing: 0; }
+.hbc-meter { margin-left: auto; text-align: right; font-size: 11.5px; line-height: 1.6;
+  color: #8697a8; }
+
+/* ---- 对话区 ---- */
+.hbc-log { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 20px;
+  display: flex; flex-direction: column; gap: 12px; }
+.hbc-row { display: flex; }
+.hbc-row.me { justify-content: flex-end; }
+.hbc-bubble { max-width: 78%; padding: 10px 14px; border-radius: 16px;
+  font-size: 14.5px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+.hbc-row.her .hbc-bubble { color: #22303c;
+  background: linear-gradient(160deg, rgba(126, 199, 233, .42), rgba(168, 219, 242, .3));
+  border: 1px solid rgba(43, 127, 184, .2); border-bottom-left-radius: 5px; }
+.hbc-row.me .hbc-bubble { color: #17394d;
+  background: rgba(43, 127, 184, .13); border: 1px solid rgba(43, 127, 184, .22);
+  border-bottom-right-radius: 5px; }
+
+.hbc-sys { align-self: center; max-width: 88%; text-align: center;
+  padding: 6px 13px; border-radius: 999px; font-size: 12px; line-height: 1.6;
+  color: #6b7885; background: rgba(43, 127, 184, .07);
+  border: 1px solid rgba(43, 127, 184, .14); }
+
+/* 流式输出时跟在字后面的小光标 */
+.hbc-caret { display: inline-block; width: 7px; height: 14px; margin-left: 2px;
+  vertical-align: -2px; background: #2b7fb8;
+  animation: hbcBlink .9s steps(1, end) infinite; }
+@keyframes hbcBlink { 50% { opacity: 0; } }
+
+/* 「正在打字」那三个点：只晃 opacity，不动布局 */
+.hbc-typing .hbc-bubble { display: flex; align-items: center; gap: 5px; padding: 13px 15px; }
+.hbc-typing .hbc-bubble span { width: 6px; height: 6px; border-radius: 50%;
+  background: #2b7fb8; animation: hbcBounce 1.15s ease-in-out infinite; }
+.hbc-typing .hbc-bubble span:nth-child(2) { animation-delay: .16s; }
+.hbc-typing .hbc-bubble span:nth-child(3) { animation-delay: .32s; }
+@keyframes hbcBounce { 0%, 60%, 100% { opacity: .3; } 30% { opacity: 1; } }
+
+/* ---- 底下的输入条 ---- */
+.hbc-form { flex: 0 0 auto; display: flex; align-items: flex-end; gap: 10px;
+  padding: 14px 16px 8px; border-top: 1px solid rgba(43, 127, 184, .14); }
+.hbc-input { flex: 1 1 auto; min-width: 0; height: 46px; max-height: 150px;
+  padding: 12px 14px; border-radius: 14px; resize: none; font: inherit;
+  font-size: 14.5px; line-height: 1.6; color: #22303c; outline: none;
+  border: 1px solid rgba(43, 127, 184, .22); background: #fff;
+  transition: border-color .2s ease, box-shadow .2s ease; }
+.hbc-input::placeholder { color: #a8b2bf; }
+.hbc-input:focus { border-color: #2b7fb8; box-shadow: 0 0 0 3px rgba(43, 127, 184, .13); }
+.hbc-input:disabled { background: #f4f6f9; color: #a8b2bf; }
+.hbc-send { flex: 0 0 auto; height: 46px; padding: 0 24px; border: 0; cursor: pointer;
+  border-radius: 14px; font: inherit; font-weight: 700; color: #fff;
+  background: linear-gradient(160deg, #4aa7d6, #2b7fb8);
+  transition: filter .2s ease, transform .18s ease; }
+.hbc-send:hover { filter: brightness(1.06); }
+.hbc-send:active { transform: translateY(1px); }
+.hbc-send:disabled { opacity: .45; cursor: default; }
+.hbc-foot { flex: 0 0 auto; margin: 0; padding: 0 18px 14px; text-align: center;
+  font-size: 11.5px; line-height: 1.6; color: #a2acb9; }
+
+/* ---- 黑夜：整块沉到水下 ---- */
+html.hb-dark .hbc-shell { border-color: rgba(127, 210, 245, .2);
+  background: linear-gradient(180deg, #0e2a3d 0%, #0b2132 100%);
+  box-shadow: 0 20px 54px rgba(0, 0, 0, .38); }
+html.hb-dark .hbc-head { border-bottom-color: rgba(127, 210, 245, .14); }
+html.hb-dark .hbc-dot { background: #7fd2f5; box-shadow: 0 0 12px rgba(127, 210, 245, .8); }
+html.hb-dark .hbc-who { color: #e8eef6; }
+html.hb-dark .hbc-who small, html.hb-dark .hbc-meter { color: #8697a8; }
+html.hb-dark .hbc-row.her .hbc-bubble { color: #e6f3fd;
+  background: linear-gradient(160deg, rgba(56, 132, 172, .5), rgba(28, 84, 118, .5));
+  border-color: rgba(127, 210, 245, .2); }
+html.hb-dark .hbc-row.me .hbc-bubble { color: #dceffb;
+  background: rgba(127, 210, 245, .15); border-color: rgba(127, 210, 245, .26); }
+html.hb-dark .hbc-sys { color: #b9c7d6; background: rgba(255, 255, 255, .05);
+  border-color: rgba(127, 210, 245, .16); }
+html.hb-dark .hbc-caret { background: #7fd2f5; }
+html.hb-dark .hbc-typing .hbc-bubble span { background: #7fd2f5; }
+html.hb-dark .hbc-form { border-top-color: rgba(127, 210, 245, .14); }
+html.hb-dark .hbc-input { color: #eaf6ff; background: rgba(3, 17, 28, .6);
+  border-color: rgba(127, 210, 245, .22); }
+html.hb-dark .hbc-input::placeholder { color: #6f8496; }
+html.hb-dark .hbc-input:focus { border-color: rgba(127, 210, 245, .55);
+  box-shadow: 0 0 0 3px rgba(127, 210, 245, .12); }
+html.hb-dark .hbc-input:disabled { background: rgba(3, 17, 28, .4); color: #6f8496; }
+html.hb-dark .hbc-send { color: #04202f;
+  background: linear-gradient(160deg, #7fe3ff, #3f9cc8); }
+html.hb-dark .hbc-foot { color: #6f8496; }
+
+/* 窄屏：聊天窗占满大半屏高，气泡让出一点宽度 */
+@media (max-width: 640px) {
+  /* 高度收一档，整块聊天窗能落在右下角那三个悬浮钮上面，
+     不用滚着看；输入条和底下那行小字再往左让 56px，
+     免得被悬浮钮压住（它们是钉在屏幕右下角的，不跟着页面走）。 */
+  .hbc-shell { height: min(66vh, 560px); border-radius: 16px; }
+  .hbc-bubble { max-width: 86%; }
+  .hbc-head { padding: 13px 15px; }
+  .hbc-head .hbc-meter { font-size: 11px; }
+  .hbc-log { padding: 15px; }
+  .hbc-form { padding: 12px 56px 6px 12px; }
+  .hbc-send { padding: 0 18px; }
+  .hbc-foot { padding: 0 56px 12px 14px; }
 }
