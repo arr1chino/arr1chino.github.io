@@ -1507,3 +1507,14 @@ html.hb-dark .hbc-foot { color: #6f8496; }
   .hbc-send { padding: 0 18px; }
   .hbc-foot { padding: 0 56px 12px 14px; }
 }
+
+/* ---- 聊天页（/chat/）自己再收两处 ----
+   ① 底下那条蓝页脚整条藏掉。别的页面它是浅蓝底 + 浅色字、接得住海面，
+      但这一页的正文是一整块会呼吸的聊天窗，脚注横在下面只剩碍眼。
+      版权那两行在首页和文章页都还在，只是这一页不显示。
+   ② 把外面那圈卡片框去掉（白天原来是张白卡、黑天是近黑的 #121212，
+      所以看起来像给聊天窗套了个黑相框）。底色一律透明，让聊天窗直接浮在海面上，
+      它自己那层圆角渐变 + 描边就够了。
+   html 上的 hb-chat-page 是 /chat/ 在 <head> 里自己打的（见主题 _config.yml 的 inject）。 */
+html.hb-chat-page #footer { display: none !important; }
+html.hb-chat-page #page { background-color: transparent !important; box-shadow: none !important; }
