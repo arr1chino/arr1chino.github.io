@@ -43,7 +43,7 @@
     '<div class="hbc-shell">' +
       '<div class="hbc-head">' +
         '<span class="hbc-dot" aria-hidden="true"></span>' +
-        '<span class="hbc-who">沃雅妮莎<small>水底信号 · 想到什么说什么</small></span>' +
+        '<span class="hbc-who">沃雅妮莎<small>离群的水妖 · 首席女高音</small></span>' +
         '<span class="hbc-meter" id="hbc-meter">读取中…</span>' +
       '</div>' +
       '<div class="hbc-log" id="hbc-log" role="log" aria-live="polite"></div>' +
